@@ -482,6 +482,7 @@ NSString const* kDate = @"Date";
 - (void)unserialize:(NSDictionary*)dictionary {
 	if (dictionary[kDrawView]) {
 		[self.drawView unserialize:dictionary[kDrawView]];
+    [self.drawView refreshBitmap];
 	}
 	if (dictionary[kLabels]) {
 		[self.textView unserialize:dictionary[kLabels]];
