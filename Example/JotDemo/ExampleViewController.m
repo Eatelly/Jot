@@ -9,7 +9,7 @@
 #import "ExampleViewController.h"
 @import AssetsLibrary;
 #import <Masonry/Masonry.h>
-#import <jot/jot.h>
+#import <Jot/Jot.h>
 
 NSString * const kPencilImageName = @"";
 NSString * const kTextImageName = @"";

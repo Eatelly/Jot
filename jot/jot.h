@@ -1,6 +1,6 @@
 //
-//  jot.h
-//  jot
+//  Jot.h
+//  Jot
 //
 //  Created by Laura Skelton on 4/30/15.
 //
