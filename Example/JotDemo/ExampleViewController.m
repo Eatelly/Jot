@@ -128,21 +128,21 @@ NSString * const kSaveImageName = @"";
 
 - (void)saveButtonAction
 {
-    UIImage *drawnImage = [self.jotViewController renderImageWithScale:2.f
-                                                               onColor:self.view.backgroundColor];
-    
-    [self.jotViewController clearAll];
-    
-    ALAssetsLibrary *library = [ALAssetsLibrary new];
-    [library writeImageToSavedPhotosAlbum:[drawnImage CGImage]
-                              orientation:(ALAssetOrientation)[drawnImage imageOrientation]
-                          completionBlock:^(NSURL *assetURL, NSError *error){
-                              if (error) {
-                                  NSLog(@"Error saving photo: %@", error.localizedDescription);
-                              } else {
-                                  NSLog(@"Saved photo to saved photos album.");
-                              }
-                          }];
+//    UIImage *drawnImage = [self.jotViewController renderImageWithScale:2.f
+//                                                               onColor:self.view.backgroundColor];
+//    
+//    [self.jotViewController clearAll];
+//    
+//    ALAssetsLibrary *library = [ALAssetsLibrary new];
+//    [library writeImageToSavedPhotosAlbum:[drawnImage CGImage]
+//                              orientation:(ALAssetOrientation)[drawnImage imageOrientation]
+//                          completionBlock:^(NSURL *assetURL, NSError *error){
+//                              if (error) {
+//                                  NSLog(@"Error saving photo: %@", error.localizedDescription);
+//                              } else {
+//                                  NSLog(@"Saved photo to saved photos album.");
+//                              }
+//                          }];
 }
 
 - (void)toggleDrawingButtonAction
