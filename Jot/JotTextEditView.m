@@ -12,6 +12,7 @@
 @interface JotTextEditView () <UITextViewDelegate>
 
 @property (nonatomic, strong) UITextView *textView;
+@property (nonatomic, strong) UIView *textBackground;
 @property (nonatomic, strong) UIView *textContainer;
 @property (nonatomic, strong) CAGradientLayer *gradientMask;
 @property (nonatomic, strong) CAGradientLayer *topGradient;
@@ -29,7 +30,8 @@
         
         _font = [UIFont systemFontOfSize:40.f];
         _fontSize = 40.f;
-        
+        _whiteValue = 0.f;
+        _alphaValue = 0.f;
         _textEditingInsets = UIEdgeInsetsMake(0.f, 0.f, 0.f, 0.f);
         
         _textContainer = [UIView new];
@@ -45,13 +47,20 @@
         self.textView.text = self.textString;
         self.textView.keyboardType = UIKeyboardTypeDefault;
         self.textView.returnKeyType = UIReturnKeyDone;
-        self.textView.clipsToBounds = NO;
+        self.textView.clipsToBounds = YES;
         self.textView.delegate = self;
         [self.textContainer addSubview:self.textView];
         [self.textView mas_makeConstraints:^(MASConstraintMaker *make) {
-            make.edges.equalTo(self.textContainer).insets(_textEditingInsets);
+          make.edges.equalTo(self.textContainer).insets(_textEditingInsets);
         }];
-        
+      
+        _textBackground = [UIView new];
+        self.textBackground.backgroundColor = [UIColor colorWithWhite: self.whiteValue alpha: self.alphaValue];
+        self.textBackground.layer.cornerRadius = 5.f;
+        self.textBackground.clipsToBounds = YES;
+        [self.textContainer addSubview:self.textBackground];
+        [self.textContainer insertSubview:self.textBackground belowSubview:self.textView];
+      
         self.textContainer.hidden = YES;
         self.userInteractionEnabled = NO;
         
@@ -110,10 +119,10 @@
         } else {
             CGFloat screenSpaceRemaining = CGRectGetHeight([UIScreen mainScreen].applicationFrame) - CGRectGetHeight(keyboardRectEnd);
             [self mas_remakeConstraints:^(MASConstraintMaker *make) {
-                make.top.equalTo(self.superview).offset(screenSpaceRemaining/6);
+                make.top.equalTo(self.superview);
                 make.left.equalTo(self.superview);
                 make.right.equalTo(self.superview);
-                make.height.equalTo(@(screenSpaceRemaining/3));
+                make.height.equalTo(@(screenSpaceRemaining));
             }];
         }
         
@@ -136,6 +145,12 @@
         _textString = textString;
         self.textView.text = textString;
         [self.textView setContentOffset:CGPointZero animated:NO];
+      
+        CGFloat height = MIN(self.textView.contentSize.height, self.textView.bounds.size.height);
+        self.textBackground.frame = CGRectMake(self.textView.frame.origin.x,
+                                               self.textView.frame.origin.y,
+                                               self.textView.contentSize.width,
+                                               height);
     }
 }
 
@@ -143,11 +158,19 @@
 {
     if (!UIEdgeInsetsEqualToEdgeInsets(_textEditingInsets, textEditingInsets)) {
         _textEditingInsets = textEditingInsets;
+      
         [self.textView mas_updateConstraints:^(MASConstraintMaker *make) {
-            make.edges.equalTo(self.textContainer).insets(textEditingInsets);
+          make.edges.equalTo(self.textContainer).insets(textEditingInsets);
         }];
+
         [self.textView layoutIfNeeded];
         [self.textView setContentOffset:CGPointZero animated:NO];
+      
+        CGFloat height = MIN(self.textView.contentSize.height, self.textView.bounds.size.height);
+        self.textBackground.frame = CGRectMake(self.textView.frame.origin.x,
+                                               self.textView.frame.origin.y,
+                                               self.textView.contentSize.width,
+                                               height);
     }
 }
 
@@ -156,6 +179,12 @@
     if (_font != font) {
         _font = font;
         self.textView.font = [font fontWithSize:_fontSize];
+
+      CGFloat height = MIN(self.textView.contentSize.height, self.textView.bounds.size.height);
+      self.textBackground.frame = CGRectMake(self.textView.frame.origin.x,
+                                             self.textView.frame.origin.y,
+                                             self.textView.contentSize.width,
+                                             height);
     }
 }
 
@@ -164,6 +193,12 @@
     if (_fontSize != fontSize) {
         _fontSize = fontSize;
         self.textView.font = [_font fontWithSize:fontSize];
+      
+      CGFloat height = MIN(self.textView.contentSize.height, self.textView.bounds.size.height);
+      self.textBackground.frame = CGRectMake(self.textView.frame.origin.x,
+                                             self.textView.frame.origin.y,
+                                             self.textView.contentSize.width,
+                                             height);
     }
 }
 
@@ -211,6 +246,21 @@
         }
     }
 }
+
+
+- (void)setWhiteValue:(CGFloat)whiteValue
+{
+  _whiteValue = whiteValue;
+  self.textBackground.backgroundColor = [UIColor colorWithWhite: whiteValue alpha: self.alphaValue];
+}
+
+
+- (void)setAlphaValue:(CGFloat)alphaValue
+{
+  _alphaValue = alphaValue;
+  self.textBackground.backgroundColor = [UIColor colorWithWhite: self.whiteValue alpha: alphaValue];
+}
+
 
 #pragma mark - Gradient Mask
 
@@ -267,21 +317,31 @@
 
 #pragma mark - Text Editing
 
+- (void)textViewDidChange:(UITextView *)textView
+{
+  CGFloat height = MIN(self.textView.contentSize.height, self.textView.bounds.size.height);
+  self.textBackground.frame = CGRectMake(self.textView.frame.origin.x,
+                                         self.textView.frame.origin.y,
+                                         self.textView.contentSize.width,
+                                         height);
+}
+
+
 - (BOOL)textView:(UITextView *)textView shouldChangeTextInRange:(NSRange)range replacementText:(NSString *)text
 {
     if ([text isEqualToString: @"\n"]) {
         self.isEditing = NO;
         return NO;
     }
-	
+  
     BOOL result = YES;
     NSUInteger actualTextLength = (textView.text.length - range.length);
-    if ((actualTextLength + text.length) > 200) {
+    if ((actualTextLength + text.length) > 300) {
         result = NO;
     }
     if (!result) {
-        if (actualTextLength < 200) {
-            NSString *newText = [self cutText:text toLength:(200 - actualTextLength)];
+        if (actualTextLength < 300) {
+            NSString *newText = [self cutText:text toLength:(300 - actualTextLength)];
             if (nil != newText) {
                 UITextRange *textRange = textView.selectedTextRange;
                 dispatch_async(dispatch_get_main_queue(), ^{

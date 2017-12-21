@@ -12,7 +12,7 @@
 
 @interface JotTextView ()
 
-@property (nonatomic, strong) JotLabel *selectedLabel;
+//@property (nonatomic, strong) JotLabel *selectedLabel;
 @property (nonatomic, strong) NSMutableArray <JotLabel*> *labels;
 @property (nonatomic, strong) UIView *textEditingContainer;
 @property (nonatomic, strong) UITextView *textEditingView;
@@ -85,6 +85,7 @@
 		}
 		CGPoint center = self.selectedLabel.center;
 		self.selectedLabel.text = textString;
+    self.selectedLabel.initialTextInsets = self.initialTextInsets;
 		[self.selectedLabel autosize];
 		self.selectedLabel.center = center;
 	}
@@ -203,6 +204,7 @@
 	}
 	return label;
 }
+
 
 - (void)deselectLabel {
 	if (_selectedLabel) {
@@ -365,8 +367,7 @@
 
 - (void)unserialize:(NSArray*)array on:(CGFloat)ratioForAspectFitAgainstiPhone6{
 	for (NSDictionary *labelDic in array) {
-    JotLabel *label = [JotLabel fromSerialized:labelDic on:ratioForAspectFitAgainstiPhone6];
-    label.initialTextInsets = self.initialTextInsets;
+    JotLabel *label = [JotLabel fromSerialized:labelDic on:ratioForAspectFitAgainstiPhone6 with:self.initialTextInsets bounds:self.bounds];
 		[self.labels addObject:label];
 		[self addSubview:label];
     [label autosize];
