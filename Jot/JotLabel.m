@@ -11,30 +11,40 @@
 NSString *const kText = @"Text";
 NSString *const kFontName = @"FontName";
 NSString *const kFontSize = @"FontSize";
-NSString *const kTextColor = @"Color";
 NSString *const kAlignment = @"Alignment";
 NSString *const kCenter = @"Center";
 NSString *const kRotation = @"kRotation";
 NSString *const kScale = @"Scale";
 NSString *const kFitWidth = @"FitWidth";
+
+NSString *const kTextColor = @"Color";
 NSString *const kLabelColorRed = @"LabelColorRed";
 NSString *const kLabelColorGreen = @"LabelColorGreen";
 NSString *const kLabelColorBlue = @"LabelColorBlue";
 NSString *const kLabelColorAlpha = @"LabelColorAlpha";
 NSString *const kLabelPointX = @"LabelPointX";
 NSString *const kLabelPointY = @"LabelPointY";
+
+NSString *const kBackingColor = @"BackingColor";
+NSString *const kBgColorRed = @"BgColorRed";
+NSString *const kBgColorGreen = @"BgColorGreen";
+NSString *const kBgColorBlue = @"BgColorBlue";
+NSString *const kBgColorAlpha = @"BgColorAlpha";
 NSString *const kBgWhiteValue = @"BgWhiteValue";
 NSString *const kBgAlphaValue = @"BgAlphaValue";
+
 NSString *const kTextInsets = @"TextInsets";
 NSString *const kTextInsetTop = @"TextInsetTop";
 NSString *const kTextInsetBottom = @"TextInsetBottom";
 NSString *const kTextInsetLeft = @"TextInsetLeft";
 NSString *const kTextInsetRight = @"TextInsetRight";
 
+CGFloat const bgPadWidthAsFontFraction = 0.5f; // Hand tuned numbers
+CGFloat const bgPadHeightAsFontFraction = 0.25f;
+CGFloat const bgCornerRadiusAsFontFraction = 0.3f;
 
 @interface JotLabel ()
 
-@property (nonatomic, strong) CAShapeLayer *borderLayer;
 @end
 
 @implementation JotLabel
@@ -48,10 +58,33 @@ NSString *const kTextInsetRight = @"TextInsetRight";
 		_unscaledFrame = self.frame;
     
     // Create a little background placeholder for the label
-    self.layer.backgroundColor = [[UIColor colorWithWhite:0.0 alpha:0.0] CGColor];
-    self.layer.cornerRadius = 5.0;
+    self.layer.backgroundColor = [[UIColor colorWithWhite:1.0f alpha:0.0f] CGColor];
 	}
 	return self;
+}
+
+- (CGRect)textRectForBounds:(CGRect)bounds limitedToNumberOfLines:(NSInteger)numberOfLines
+{
+  UIEdgeInsets insets = UIEdgeInsetsMake(self.font.pointSize * bgPadHeightAsFontFraction,
+                                         self.font.pointSize * bgPadWidthAsFontFraction,
+                                         self.font.pointSize * bgPadHeightAsFontFraction,
+                                         self.font.pointSize * bgPadWidthAsFontFraction);
+  CGRect rect = [super textRectForBounds:bounds limitedToNumberOfLines:numberOfLines];
+
+  rect.origin.x    -= insets.left;
+  rect.origin.y    -= insets.top;
+  rect.size.width  += (insets.left + insets.right);
+  rect.size.height += (insets.top + insets.bottom);
+
+  return rect;
+}
+
+- (void)drawTextInRect:(CGRect)rect
+{
+  [super drawTextInRect:UIEdgeInsetsInsetRect(rect, UIEdgeInsetsMake(self.font.pointSize * bgPadHeightAsFontFraction,
+                                                                     self.font.pointSize * bgPadWidthAsFontFraction,
+                                                                     self.font.pointSize * bgPadHeightAsFontFraction,
+                                                                     self.font.pointSize * bgPadWidthAsFontFraction))];
 }
 
 - (void)setSelected:(BOOL)selected {
@@ -100,7 +133,8 @@ NSString *const kTextInsetRight = @"TextInsetRight";
                     _unscaledFrame.size.height * _scale);// * 1.03f);
 		CGFloat currentFontSize = self.unscaledFontSize * _scale;
 		self.font = [self.font fontWithSize:currentFontSize];
-		
+		self.layer.cornerRadius = currentFontSize * bgCornerRadiusAsFontFraction;
+    
 		self.frame = scaledFrame;
 		self.center = labelCenter;
 		self.transform = CGAffineTransformMakeRotation(angle);
@@ -139,11 +173,12 @@ NSString *const kTextInsetRight = @"TextInsetRight";
 	CGSize originalSize = [temporarySizingLabel sizeThatFits:insetViewRect.size];
 	temporarySizingLabel.frame = CGRectMake(0.f,
 											0.f,
-											originalSize.width * 1.03f,
-											originalSize.height * 1.03f);
+											originalSize.width,
+                      originalSize.height * 1.03f);
 	temporarySizingLabel.center = self.center;
   
 	self.unscaledFrame = temporarySizingLabel.frame;
+  self.layer.cornerRadius = self.unscaledFontSize * self.scale * bgCornerRadiusAsFontFraction;
 }
 
 
@@ -161,26 +196,35 @@ NSString *const kTextInsetRight = @"TextInsetRight";
 	dic[kText] = self.text;  // NSString
 	dic[kFontName] = self.font.fontName;  // NSString
 	dic[kFontSize] = @(self.unscaledFontSize);  // CGFloat
-  
-  CGFloat colorRed;
-  CGFloat colorGreen;
-  CGFloat colorBlue;
-  CGFloat colorAlpha;
-
-  [self.textColor getRed: &colorRed green: &colorGreen blue: &colorBlue alpha: &colorAlpha];
-  
-  dic[kTextColor] = @{ kLabelColorRed: @(colorRed), kLabelColorGreen: @(colorGreen), kLabelColorBlue: @(colorBlue), kLabelColorAlpha: @(colorAlpha) };
-	dic[kAlignment] = @(self.textAlignment);  // NSTextAlignment enum raw Int
+  dic[kAlignment] = @(self.textAlignment);  // NSTextAlignment enum raw Int
   dic[kCenter] = @{ kLabelPointX: @(self.center.x / ratioForAspectFitAgainstiPhone6), kLabelPointY: @(self.center.y / ratioForAspectFitAgainstiPhone6) };  // Only need to move the points and change the size (scale). Don't need to touch Font sizing
-	dic[kRotation] = @(atan2f(self.transform.b, self.transform.a)); // Tan 2 Float?
-	dic[kScale] = @(self.scale / ratioForAspectFitAgainstiPhone6);  // Only need to move the points and change the size (scale). Don't need to touch Font sizing
-	dic[kFitWidth] = @(self.fitOriginalFontSizeToViewWidth);  // Bool
+  dic[kRotation] = @(atan2f(self.transform.b, self.transform.a)); // Tan 2 Float?
+  dic[kScale] = @(self.scale / ratioForAspectFitAgainstiPhone6);  // Only need to move the points and change the size (scale). Don't need to touch Font sizing
+  dic[kFitWidth] = @(self.fitOriginalFontSizeToViewWidth);  // Bool
   
-  CGFloat bgWhiteValue;
-  CGFloat bgAlphaValue;
-  [[UIColor colorWithCGColor: self.layer.backgroundColor] getWhite: &bgWhiteValue alpha: &bgAlphaValue];
-  dic[kBgWhiteValue] = @(bgWhiteValue);
-  dic[kBgAlphaValue] = @(bgAlphaValue);
+  CGFloat textColorRed;
+  CGFloat textColorGreen;
+  CGFloat textColorBlue;
+  CGFloat textColorAlpha;
+
+  [self.textColor getRed: &textColorRed green: &textColorGreen blue: &textColorBlue alpha: &textColorAlpha];
+  
+  dic[kTextColor] = @{ kLabelColorRed: @(textColorRed),
+                       kLabelColorGreen: @(textColorGreen),
+                       kLabelColorBlue: @(textColorBlue),
+                       kLabelColorAlpha: @(textColorAlpha) };
+
+  CGFloat bgColorRed;
+  CGFloat bgColorGreen;
+  CGFloat bgColorBlue;
+  CGFloat bgColorAlpha;
+  
+  [[UIColor colorWithCGColor: self.layer.backgroundColor] getRed: &bgColorRed green: &bgColorGreen blue: &bgColorBlue alpha: &bgColorAlpha];
+  
+  dic[kBackingColor] = @{ kBgColorRed: @(bgColorRed),
+                          kBgColorGreen: @(bgColorGreen),
+                          kBgColorBlue: @(bgColorBlue),
+                          kBgColorAlpha: @(bgColorAlpha) };
   
   CGFloat widthInsetAdjustment = (self.superview.bounds.size.width - (self.superview.bounds.size.width / ratioForAspectFitAgainstiPhone6))/2;
   CGFloat heightInsetAdjustment = (self.superview.bounds.size.height - (self.superview.bounds.size.height / ratioForAspectFitAgainstiPhone6))/2;
@@ -202,18 +246,6 @@ NSString *const kTextInsetRight = @"TextInsetRight";
 		self.font = [UIFont fontWithName:dictionary[kFontName]
 									size:[dictionary[kFontSize] floatValue]];
 		self.unscaledFontSize = [dictionary[kFontSize] floatValue];
-	}
-	if (dictionary[kTextColor]) {
-    NSDictionary *color = dictionary[kTextColor];
-    NSNumber *numberRed = color[kLabelColorRed];
-    NSNumber *numberGreen = color[kLabelColorGreen];
-    NSNumber *numberBlue = color[kLabelColorBlue];
-    NSNumber *numberAlpha = color[kLabelColorAlpha];
-
-    self.textColor = [UIColor colorWithRed:[numberRed floatValue]
-                                     green:[numberGreen floatValue]
-                                      blue:[numberBlue floatValue]
-                                     alpha:[numberAlpha floatValue]];
 	}
 	if (dictionary[kAlignment]) {
 		self.textAlignment = [dictionary[kAlignment] integerValue];
@@ -239,9 +271,37 @@ NSString *const kTextInsetRight = @"TextInsetRight";
 		self.fitOriginalFontSizeToViewWidth = YES;
 		self.numberOfLines = 0;
 	}
-  if (dictionary[kBgWhiteValue] && dictionary[kBgAlphaValue]) {
+  
+  if (dictionary[kTextColor]) {
+    NSDictionary *color = dictionary[kTextColor];
+    NSNumber *numberRed = color[kLabelColorRed];
+    NSNumber *numberGreen = color[kLabelColorGreen];
+    NSNumber *numberBlue = color[kLabelColorBlue];
+    NSNumber *numberAlpha = color[kLabelColorAlpha];
+    
+    self.textColor = [UIColor colorWithRed:[numberRed floatValue]
+                                     green:[numberGreen floatValue]
+                                      blue:[numberBlue floatValue]
+                                     alpha:[numberAlpha floatValue]];
+  }
+  
+  if (dictionary[kBackingColor]) {
+    NSDictionary * color = dictionary[kBackingColor];
+    NSNumber *numberRed = color[kBgColorRed];
+    NSNumber *numberGreen = color[kBgColorGreen];
+    NSNumber *numberBlue = color[kBgColorBlue];
+    NSNumber *numberAlpha = color[kBgColorAlpha];
+    
+    self.layer.backgroundColor = [[UIColor colorWithRed:[numberRed floatValue]
+                                                  green:[numberGreen floatValue]
+                                                   blue:[numberBlue floatValue]
+                                                  alpha:[numberAlpha floatValue]] CGColor];
+  }
+  
+  else if (dictionary[kBgWhiteValue] && dictionary[kBgAlphaValue]) {
     self.layer.backgroundColor = [[UIColor colorWithWhite: [dictionary[kBgWhiteValue] floatValue] alpha: [dictionary[kBgAlphaValue] floatValue]] CGColor];
   }
+  
   if (dictionary[kTextInsets]) {
     CGFloat widthInsetAdjustment = (superBounds.size.width - (superBounds.size.width / ratioForAspectFitAgainstiPhone6))/2;
     CGFloat heightInsetAdjustment = (superBounds.size.height - (superBounds.size.height / ratioForAspectFitAgainstiPhone6))/2;
